@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>새 폴더 - 다르게 적힌 글자 찾기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --folder-body: #F4C13D;
+    --folder-back: #E5A930;
+    --folder-highlight: #FCD866;
+    --ink: #1A1A1A;
+    --ink-mute: #737373;
+    --border-mute: #E8E8EA;
+    --border-focus: #1A1A1A;
+    --gold: #D89613;
+    --danger: #E14C4C;
+    --confetti-1: #F94144;
+    --confetti-2: #F9C74F;
+    --confetti-3: #43AA8B;
+    --confetti-4: #577590;
+    --confetti-5: #F8961E;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #C4C4C6;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ─────────── Screens ─────────── */
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* ─────────── Header ─────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    min-height: 56px;
+    z-index: 2;
+  }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .icon-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ─────────── Timer bar ─────────── */
+  .timer-wrap {
+    height: 3px;
+    margin: 0 20px 12px;
+    background: var(--border-mute);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .timer-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--ink);
+    transition: width 0.1s linear, background-color 0.2s;
+    transform-origin: left;
+  }
+  .timer-fill.warn { background: var(--danger); }
+  .timer-fill.penalty { animation: penaltyPulse 0.3s; }
+  @keyframes penaltyPulse {
+    0%, 100% { background: var(--danger); }
+    50% { background: #FF9999; }
+  }
+
+  /* ─────────── Title area ─────────── */
+  .title-area {
+    text-align: center;
+    padding: 8px 20px 20px;
+    min-height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .title-area h2 {
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: -0.5px;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  /* ─────────── Grid ─────────── */
+  .grid-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px 20px;
+    position: relative;
+  }
+  .grid {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 1;
+  }
+  .grid.g2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.g3 { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid.g4 { grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .grid.g5 { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+
+  .card {
+    position: relative;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: 900;
+    color: var(--ink);
+    white-space: pre-line;
+    text-align: center;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: transform 0.08s ease;
+    padding: 4px;
+    filter: drop-shadow(0 2px 3px rgba(150, 100, 20, 0.18));
+  }
+  .card .folder-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .card .folder-svg .folder-back {
+    fill: var(--folder-back);
+    transition: fill 0.15s;
+  }
+  .card .folder-svg .folder-body {
+    fill: var(--folder-body);
+    transition: fill 0.15s;
+  }
+  .card .folder-svg .folder-outline {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 0;
+    transition: stroke 0.15s, stroke-width 0.15s;
+  }
+  .card .folder-text {
+    position: relative;
+    z-index: 1;
+    /* 폴더 몸통 정중앙 (탭 아래 영역의 시각적 중심) */
+    margin-top: 10%;
+  }
+  .grid.g2 .card { font-size: 32px; }
+  .grid.g3 .card { font-size: 20px; }
+  .grid.g4 .card { font-size: 15px; letter-spacing: -1px; }
+  .grid.g5 .card { font-size: 11px; letter-spacing: -1px; }
+
+  .card:active { transform: scale(0.94); }
+  .card.reveal .folder-svg .folder-outline {
+    stroke: var(--border-focus);
+    stroke-width: 3.5;
+  }
+  .card.wrong { animation: shake 0.35s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+  }
+
+  /* ─────────── Footer ─────────── */
+  footer {
+    padding: 12px 20px 20px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 40px;
+  }
+  footer .prize { color: var(--gold); font-weight: 700; }
+
+  /* ─────────── Confetti ─────────── */
+  .confetti {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .confetti span {
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  /* ─────────── Intro ─────────── */
+  #screen-intro {
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .intro-header {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    padding: 14px 18px;
+  }
+  .intro-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    max-width: 300px;
+    text-align: center;
+  }
+  .intro-inner .eyebrow {
+    font-size: 14px;
+    color: var(--ink-mute);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .intro-inner h1 {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  .countdown-circle {
+    width: 88px;
+    height: 88px;
+    background: var(--ink);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    font-weight: 900;
+    margin-top: 24px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  .countdown-circle:active { transform: scale(0.95); }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  .intro-inner .start-hint {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-top: -8px;
+  }
+
+  /* ─────────── Success/Fail final ─────────── */
+  .end-screen {
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+  }
+  .end-screen h1 {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 1.35;
+    margin-bottom: 32px;
+    color: var(--ink);
+  }
+  .end-screen .prize-box {
+    background: white;
+    padding: 24px 32px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  .end-screen .prize-box .label {
+    font-size: 13px;
+    color: var(--ink-mute);
+    margin-bottom: 4px;
+  }
+  .end-screen .prize-box .amount {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: -0.5px;
+  }
+  .end-screen .cta {
+    width: 100%;
+    max-width: 340px;
+    padding: 18px 24px;
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: -0.3px;
+    transition: transform 0.08s;
+  }
+  .end-screen .cta:active { transform: scale(0.98); }
+  .end-screen .end-note {
+    margin-top: 20px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    line-height: 1.5;
+    padding: 0 20px;
+  }
+
+  /* ─────────── Info modal ─────────── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 340px;
+    width: 100%;
+  }
+  .modal h3 {
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 16px;
+  }
+  .modal ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+  }
+  .modal li {
+    font-size: 14px;
+    color: var(--ink);
+    padding: 6px 0;
+    line-height: 1.5;
+    display: flex;
+    gap: 8px;
+  }
+  .modal li::before {
+    content: '·';
+    color: var(--ink-mute);
+    font-weight: 900;
+  }
+  .modal .close-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ─── INTRO ─── -->
+  <section id="screen-intro" class="screen active">
+    <div class="intro-header">
+      <button class="icon-btn" aria-label="뒤로">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+    <div class="intro-inner">
+      <div>
+        <div class="eyebrow">새 폴더 어디까지 만들어봤니</div>
+        <h1>다르게 적힌 글자를<br>찾아주세요</h1>
+      </div>
+      <div class="countdown-circle" id="startBtn">시작</div>
+      <div class="start-hint">눌러서 시작</div>
+    </div>
+  </section>
+
+  <!-- ─── PLAYING ─── -->
+  <section id="screen-play" class="screen">
+    <header>
+      <button class="icon-btn" id="backBtn" aria-label="뒤로">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="icon-btn" id="infoBtn" aria-label="게임 방법">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </button>
+    </header>
+    <div class="timer-wrap">
+      <div class="timer-fill" id="timerFill"></div>
+    </div>
+    <div class="title-area">
+      <h2 id="stageTitle">1단계</h2>
+    </div>
+    <div class="grid-area">
+      <div class="grid g2" id="gridEl"></div>
+    </div>
+    <footer id="playFooter">
+      <span>5단계까지 성공하면 <span class="prize">상금 10,000원</span></span>
+    </footer>
+  </section>
+
+  <!-- ─── FINAL SUCCESS ─── -->
+  <section id="screen-win" class="screen end-screen">
+    <div class="confetti" id="confettiWin"></div>
+    <h1>모든 단계<br>클리어!</h1>
+    <div class="prize-box">
+      <div class="label">획득 상금</div>
+      <div class="amount">10,000원</div>
+    </div>
+    <div class="end-note">축하합니다! 리워드는 별도로 안내됩니다.<br>추가 도전 기회는 생기지 않습니다.</div>
+  </section>
+
+  <!-- ─── FAIL ─── -->
+  <section id="screen-fail" class="screen end-screen">
+    <h1>앗, 아쉬워요<br>시간이 끝났어요</h1>
+    <div class="grid g5" id="failGrid" style="max-width:260px; margin-bottom:32px;"></div>
+    <div style="margin-bottom:16px; color:var(--ink-mute); font-size:13px;">
+      5단계까지 성공하면 <span style="color:var(--gold); font-weight:700;">상금 10,000원</span>
+    </div>
+    <button class="cta" id="retryBtn">공유하고 다시 도전하기</button>
+    <div class="end-note">도전에 성공하여 리워드를 받으면<br>추가 도전 기회는 생기지 않습니다.</div>
+  </section>
+
+  <!-- ─── STAGE SUCCESS OVERLAY (transient, replaces title/footer) ─── -->
+</div>
+
+<!-- Info modal -->
+<div class="modal-backdrop" id="infoModal">
+  <div class="modal">
+    <h3>게임 방법</h3>
+    <ul>
+      <li>같은 새 이름 카드들 중 <b>딱 하나 다르게 적힌</b> 카드를 찾아 탭하세요.</li>
+      <li>제한 시간 안에 정답을 맞히면 다음 단계로 넘어갑니다.</li>
+      <li>오답을 누르면 <b>시간이 3초 줄어듭니다.</b></li>
+      <li>단계가 오를수록 카드 수가 늘어납니다.</li>
+      <li>5단계까지 모두 성공하면 상금 10,000원.</li>
+    </ul>
+    <button class="close-btn" id="closeInfoBtn">확인</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  Hangul Jamo utilities (자모 분해/조합)
+// ═══════════════════════════════════════════════════════════════
+const JUNG_PAIRS = {
+  0:[2,4,20], 2:[0], 4:[6,0,20], 6:[4],
+  8:[12,13], 12:[8], 13:[17,8], 17:[13],
+  1:[3,5], 3:[1], 5:[7,1], 7:[5],
+  18:[20], 20:[0,4,18],
+};
+const CHO_PAIRS = {
+  6:[7], 7:[6,17], 17:[7],
+  2:[3], 3:[2,5], 5:[3],
+  9:[12], 12:[9,14], 14:[12],
+  15:[16], 16:[15],
+  11:[18], 18:[11],
+};
+
+function decompose(char) {
+  const code = char.charCodeAt(0) - 0xAC00;
+  if (code < 0 || code > 11171) return null;
+  return { cho: Math.floor(code/588), jung: Math.floor((code%588)/28), jong: code%28 };
+}
+function compose(d) {
+  return String.fromCharCode(0xAC00 + d.cho*588 + d.jung*28 + d.jong);
+}
+
+function generateDifferentWord(word) {
+  const chars = [...word];
+  const positions = [...chars.keys()].sort(() => Math.random() - 0.5);
+  for (const pos of positions) {
+    const d = decompose(chars[pos]);
+    if (!d) continue;
+    // 중성(모음) 우선 시도 → 초성 폴백
+    const jungOpts = (JUNG_PAIRS[d.jung] || []).map(j => ({...d, jung: j}));
+    const choOpts = (CHO_PAIRS[d.cho] || []).map(c => ({...d, cho: c}));
+    const pool = jungOpts.length > 0 ? jungOpts : choOpts;
+    if (pool.length === 0) continue;
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    const newChar = compose(chosen);
+    if (newChar !== chars[pos]) {
+      chars[pos] = newChar;
+      return { word: chars.join(''), pos };
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Stage configuration (단계 구성)
+// ═══════════════════════════════════════════════════════════════
+// 새 이름 풀 (글자 수별)
+const BIRDS_2 = ['고니', '느시', '오리', '제비', '솔개', '새매'];
+const BIRDS_3 = ['비둘기', '두루미', '새오리', '새제비', '새아비', '뜸부기', '갈매기', '동고비', '병아리', '뻐꾸기', '새두견', '조롱이', '발구지', '왜가리', '새솔개', '꾀꼬리', '따오기', '기러기', '지빠귀', '새원앙', '새거위', '부엉이', '양진이', '새느시'];
+const BIRDS_4 = ['직박구리', '새뻐꾸기', '새뜸부기', '새지빠귀', '오목눈이', '해오라기', '새동고비', '가마우지', '꼬리치레', '새갈매기', '새기러기', '밀화부리', '논병아리', '찌르레기', '새꾀꼬리', '새발구지'];
+
+const STAGES = [
+  { cards: 4,  cols: 2, time: 10, words: BIRDS_2 },
+  { cards: 9,  cols: 3, time: 15, words: BIRDS_3 },
+  { cards: 16, cols: 4, time: 20, words: BIRDS_3 },
+  { cards: 25, cols: 5, time: 25, words: BIRDS_4 },
+  { cards: 25, cols: 5, time: 30, words: BIRDS_4 },
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  Folder SVG (폴더 모양 카드)
+// ═══════════════════════════════════════════════════════════════
+// 100×100 viewBox 기준, preserveAspectRatio='none'으로 늘려 사용.
+// 3중 구조:
+//  1) 백플레이트 (어두운 노랑) - 상단 탭이 포함된 전체 폴더 실루엣
+//  2) 몸통 (밝은 노랑) - 탭 아래에서 시작하는 앞쪽 몸통
+//  3) 정답 outline - 백플레이트 실루엣과 동일, 정답 시 검은 stroke만 표시
+const FOLDER_BACK_PATH  = 'M4,16 Q4,8 12,8 L34,8 Q40,8 42,12 L46,20 L92,20 Q96,20 96,26 L96,90 Q96,96 90,96 L10,96 Q4,96 4,90 Z';
+const FOLDER_BODY_PATH  = 'M4,26 Q4,22 8,22 L92,22 Q96,22 96,26 L96,90 Q96,96 90,96 L10,96 Q4,96 4,90 Z';
+
+function buildFolderSVG() {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'folder-svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('preserveAspectRatio', 'none');
+
+  const back = document.createElementNS(svgNS, 'path');
+  back.setAttribute('class', 'folder-back');
+  back.setAttribute('d', FOLDER_BACK_PATH);
+  svg.appendChild(back);
+
+  const body = document.createElementNS(svgNS, 'path');
+  body.setAttribute('class', 'folder-body');
+  body.setAttribute('d', FOLDER_BODY_PATH);
+  svg.appendChild(body);
+
+  // 정답 표시용 outline (평소엔 stroke 투명, reveal 시 검은색)
+  const outline = document.createElementNS(svgNS, 'path');
+  outline.setAttribute('class', 'folder-outline');
+  outline.setAttribute('d', FOLDER_BACK_PATH);
+  svg.appendChild(outline);
+
+  return svg;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Display formatting (카드 텍스트 줄바꿈)
+// ═══════════════════════════════════════════════════════════════
+function formatDisplay(word) {
+  const len = word.length;
+  if (len <= 2) return word;
+  if (len === 3) return word;
+  if (len === 4) return word.slice(0, 2) + '\n' + word.slice(2);
+  if (len === 5) return word.slice(0, 3) + '\n' + word.slice(3);
+  if (len === 6) return word.slice(0, 3) + '\n' + word.slice(3);
+  return word;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Game state
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  stage: 0,           // 0-indexed
+  timeLeft: 0,        // seconds (float)
+  timeMax: 0,
+  timer: null,
+  answerIdx: -1,
+  currentWord: '',
+  differentWord: '',
+  locked: false,
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  DOM refs
+// ═══════════════════════════════════════════════════════════════
+const $ = (id) => document.getElementById(id);
+const screens = {
+  intro: $('screen-intro'),
+  play: $('screen-play'),
+  win: $('screen-win'),
+  fail: $('screen-fail'),
+};
+const gridEl = $('gridEl');
+const timerFill = $('timerFill');
+const stageTitle = $('stageTitle');
+const playFooter = $('playFooter');
+
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Game flow
+// ═══════════════════════════════════════════════════════════════
+function startGame() {
+  state.stage = 0;
+  showScreen('play');
+  startStage();
+}
+
+function startStage() {
+  const stage = STAGES[state.stage];
+  const isSuccessOverlay = false;
+
+  // Pick a word and generate the different version
+  const word = stage.words[Math.floor(Math.random() * stage.words.length)];
+  const result = generateDifferentWord(word);
+  if (!result) {
+    console.error('Failed to generate different word for', word);
+    return;
+  }
+  state.currentWord = word;
+  state.differentWord = result.word;
+  state.answerIdx = Math.floor(Math.random() * stage.cards);
+  state.locked = false;
+  state.timeLeft = stage.time;
+  state.timeMax = stage.time;
+
+  // Update UI
+  stageTitle.textContent = `${state.stage + 1}단계`;
+  playFooter.innerHTML = `<span>5단계까지 성공하면 <span class="prize">상금 10,000원</span></span>`;
+
+  // Render grid
+  gridEl.className = `grid g${stage.cols}`;
+  gridEl.innerHTML = '';
+  for (let i = 0; i < stage.cards; i++) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.appendChild(buildFolderSVG());
+    const text = document.createElement('span');
+    text.className = 'folder-text';
+    text.textContent = formatDisplay(i === state.answerIdx ? state.differentWord : state.currentWord);
+    card.appendChild(text);
+    card.addEventListener('click', () => handleCardClick(i, card));
+    gridEl.appendChild(card);
+  }
+
+  // Timer
+  updateTimerBar();
+  clearInterval(state.timer);
+  state.timer = setInterval(tickTimer, 100);
+}
+
+function tickTimer() {
+  state.timeLeft -= 0.1;
+  if (state.timeLeft <= 0) {
+    state.timeLeft = 0;
+    updateTimerBar();
+    clearInterval(state.timer);
+    endGameFail();
+    return;
+  }
+  updateTimerBar();
+}
+
+function updateTimerBar() {
+  const pct = Math.max(0, (state.timeLeft / state.timeMax) * 100);
+  timerFill.style.width = pct + '%';
+  if (state.timeLeft <= state.timeMax * 0.3) {
+    timerFill.classList.add('warn');
+  } else {
+    timerFill.classList.remove('warn');
+  }
+}
+
+function handleCardClick(idx, cardEl) {
+  if (state.locked) return;
+  if (idx === state.answerIdx) {
+    // 정답
+    state.locked = true;
+    clearInterval(state.timer);
+    cardEl.classList.add('reveal');
+    showStageSuccess();
+  } else {
+    // 오답: 시간 -3초 페널티
+    state.timeLeft = Math.max(0.1, state.timeLeft - 3);
+    updateTimerBar();
+    cardEl.classList.add('wrong');
+    timerFill.classList.add('penalty');
+    setTimeout(() => {
+      cardEl.classList.remove('wrong');
+      timerFill.classList.remove('penalty');
+    }, 350);
+  }
+}
+
+function showStageSuccess() {
+  // 성공 축하: 상단 타이틀 문구 교체 + 컨페티 스캐터
+  stageTitle.textContent = `${state.stage + 1}단계 성공!`;
+  scatterConfetti(gridEl.parentElement);
+
+  setTimeout(() => {
+    clearConfetti(gridEl.parentElement);
+    state.stage += 1;
+    if (state.stage >= STAGES.length) {
+      endGameWin();
+    } else {
+      startStage();
+    }
+  }, 1600);
+}
+
+function endGameWin() {
+  showScreen('win');
+  scatterConfetti($('confettiWin'), 30);
+}
+
+function endGameFail() {
+  // 실패 화면에서 정답 그리드를 축소본으로 보여줌
+  const stage = STAGES[state.stage];
+  const failGrid = $('failGrid');
+  failGrid.className = `grid g${stage.cols}`;
+  failGrid.style.maxWidth = '260px';
+  failGrid.style.aspectRatio = '1';
+  failGrid.innerHTML = '';
+  for (let i = 0; i < stage.cards; i++) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    if (i === state.answerIdx) card.classList.add('reveal');
+    card.appendChild(buildFolderSVG());
+    const text = document.createElement('span');
+    text.className = 'folder-text';
+    text.textContent = formatDisplay(i === state.answerIdx ? state.differentWord : state.currentWord);
+    card.appendChild(text);
+    failGrid.appendChild(card);
+  }
+  showScreen('fail');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Confetti (미니멀 정지 컨페티 - 원본 스타일)
+// ═══════════════════════════════════════════════════════════════
+const CONFETTI_COLORS = ['var(--confetti-1)', 'var(--confetti-2)', 'var(--confetti-3)', 'var(--confetti-4)', 'var(--confetti-5)'];
+
+function scatterConfetti(container, count = 18) {
+  const holder = document.createElement('div');
+  holder.className = 'confetti confetti-scatter';
+  for (let i = 0; i < count; i++) {
+    const dot = document.createElement('span');
+    const size = 4 + Math.random() * 6;
+    const isLine = Math.random() < 0.35;
+    dot.style.width = isLine ? '2px' : size + 'px';
+    dot.style.height = isLine ? (8 + Math.random() * 8) + 'px' : size + 'px';
+    dot.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    dot.style.left = Math.random() * 100 + '%';
+    dot.style.top = Math.random() * 100 + '%';
+    dot.style.borderRadius = isLine ? '2px' : '50%';
+    dot.style.transform = `rotate(${Math.random() * 360}deg)`;
+    dot.style.opacity = 0.85;
+    holder.appendChild(dot);
+  }
+  container.appendChild(holder);
+}
+function clearConfetti(container) {
+  container.querySelectorAll('.confetti-scatter').forEach(el => el.remove());
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Event bindings
+// ═══════════════════════════════════════════════════════════════
+$('startBtn').addEventListener('click', startGame);
+$('retryBtn').addEventListener('click', () => {
+  showScreen('intro');
+});
+$('backBtn').addEventListener('click', () => {
+  clearInterval(state.timer);
+  showScreen('intro');
+});
+$('infoBtn').addEventListener('click', () => {
+  $('infoModal').classList.add('active');
+});
+$('closeInfoBtn').addEventListener('click', () => {
+  $('infoModal').classList.remove('active');
+});
+$('infoModal').addEventListener('click', (e) => {
+  if (e.target === $('infoModal')) $('infoModal').classList.remove('active');
+});
+</script>
+</body>
+</html>

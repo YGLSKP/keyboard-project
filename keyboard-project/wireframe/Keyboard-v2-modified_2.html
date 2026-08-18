@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keyboard Wireframe</title>
+<style>
+  /* ---------- 리셋 ---------- */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: #f4f4f4;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  /* ---------- 디바이스 프레임 ---------- */
+  .device {
+    width: 375px;
+    height: 812px;
+    background: #ffffff;
+    border: 1px solid #d4d4d4;
+    border-radius: 4px;
+    -webkit-border-radius: 4px;
+    overflow: hidden;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ---------- 상태바 ---------- */
+  .status-bar {
+    height: 28px;
+    padding: 0 18px;
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    justify-content: space-between;
+    -webkit-justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+  }
+  .status-left { 
+    display: flex; 
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    gap: 6px; 
+  }
+  .status-right { 
+    display: flex; 
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    gap: 4px; 
+    font-size: 11px; 
+  }
+  .battery {
+    display: inline-flex;
+    -webkit-display: inline-flex;
+    align-items: center;
+    -webkit-align-items: center;
+    gap: 3px;
+  }
+  .battery-icon {
+    width: 22px;
+    height: 11px;
+    border: 1px solid #1a1a1a;
+    border-radius: 2px;
+    position: relative;
+    padding: 1px;
+  }
+  .battery-icon::after {
+    content: "";
+    position: absolute;
+    right: -3px;
+    top: 3px;
+    width: 2px;
+    height: 3px;
+    background: #1a1a1a;
+    border-radius: 0 1px 1px 0;
+  }
+  .battery-fill {
+    height: 100%;
+    width: 100%;
+    background: #1a1a1a;
+    border-radius: 1px;
+  }
+  .signal { font-size: 10px; letter-spacing: -1px; }
+
+  /* ---------- 1단계: 최상단 배너 (썸네일 + 텍스트) ---------- */
+  .banner {
+    height: 56px;
+    background: #d9dadd;
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    justify-content: space-between;
+    -webkit-justify-content: space-between;
+    padding: 0 12px;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+    border-bottom: 1px solid #c5c6c9;
+    gap: 10px;
+  }
+  .banner-content {
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .banner-thumb {
+    width: 40px;
+    height: 40px;
+    background: #e8e8e8;
+    border-radius: 4px;
+    -webkit-border-radius: 4px;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+    border: 1px solid #c5c6c9;
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    justify-content: center;
+    -webkit-justify-content: center;
+    font-size: 20px;
+    color: #999;
+  }
+  .banner-text {
+    font-size: 13px;
+    color: #3a3a3a;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .banner-close {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    justify-content: center;
+    -webkit-justify-content: center;
+    color: #2a2a2a;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+  }
+
+  /* ---------- 입력 영역 (빈 화면) ---------- */
+  .input-area {
+    flex: 1;
+    -webkit-flex: 1;
+    background: #ffffff;
+  }
+
+  /* ---------- 2단계: 추천/이모지 바 (원형 아이콘 균등 배치) ---------- */
+  .suggestion-bar {
+    height: 56px;
+    background: #d9dadd;
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    justify-content: center;
+    -webkit-justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+  }
+  .suggestion-dots {
+    display: flex;
+    -webkit-display: flex;
+    gap: 0;
+    align-items: center;
+    -webkit-align-items: center;
+    width: 100%;
+    justify-content: space-around;
+    -webkit-justify-content: space-around;
+  }
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    -webkit-border-radius: 50%;
+    background: #5a5a5a;
+  }
+
+  /* ---------- 3단계: 키보드 영역 ---------- */
+  .keyboard {
+    background: #d9dadd;
+    padding: 4px 4px 8px;
+    display: flex;
+    -webkit-display: flex;
+    flex-direction: column;
+    -webkit-flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+  }
+
+  .key-row {
+    display: flex;
+    -webkit-display: flex;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .key {
+    flex: 1;
+    -webkit-flex: 1;
+    height: 40px;
+    background: #ffffff;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    justify-content: center;
+    -webkit-justify-content: center;
+    font-size: 18px;
+    color: #1a1a1a;
+    font-weight: 400;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+    -webkit-transition: background 0.1s ease;
+    transition: background 0.1s ease;
+  }
+  .key:active { background: #c5c6c9; }
+
+  /* 한글 자모 행 */
+  .key.hangul { font-size: 17px; }
+
+  /* 기능 키 */
+  .key.func {
+    background: #b6b8bc;
+    flex: 1.4;
+    -webkit-flex: 1.4;
+    font-size: 15px;
+    color: #1a1a1a;
+  }
+  .key.func:active { background: #9a9da1; }
+
+  .key.space {
+    flex: 4.2;
+    -webkit-flex: 4.2;
+    font-size: 13px;
+    color: #888;
+  }
+
+  .key.small {
+    font-size: 13px;
+    color: #3a3a3a;
+  }
+
+  /* 두 번째 자음 행은 살짝 들여쓰기 (한국어 자판 표준) */
+  .row-indent {
+    padding: 0;
+  }
+
+  /* 시프트, 백스페이스 아이콘 */
+  .icon-shift::before {
+    content: "⇧";
+    font-size: 16px;
+  }
+  .icon-backspace::before {
+    content: "⌫";
+    font-size: 16px;
+  }
+  .icon-globe::before {
+    content: "🌐";
+    font-size: 14px;
+    filter: grayscale(1);
+  }
+  .icon-enter::before {
+    content: "↵";
+    font-size: 16px;
+  }
+
+  /* !@# 키 */
+  .key.symbol {
+    background: #b6b8bc;
+    font-size: 13px;
+    flex: 1.2;
+  }
+
+  /* ---------- 기능 아이콘 영역 (배너 아래) ---------- */
+  .nav-bar.function-icons {
+    height: 56px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    border-top: 1px solid #e5e5e5;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .nav-bar.function-icons .nav-icon {
+    font-size: 20px;
+    line-height: 1;
+    color: #5a5a5a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+    gap: 4px;
+  }
+  .nav-bar.function-icons .nav-label {
+    font-size: 10px;
+    color: #6a6a6a;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .nav-bar.function-icons .nav-icon.rewards::before {
+    content: "💰";
+    font-size: 22px;
+  }
+  .nav-bar.function-icons .nav-icon.emoji::before {
+    content: "😊";
+    font-size: 22px;
+  }
+  .nav-bar.function-icons .nav-icon.mission::before {
+    content: "★";
+    font-size: 22px;
+    color: #ffa500;
+  }
+  .nav-bar.function-icons .nav-icon.shopping::before {
+    content: "🛍️";
+    font-size: 22px;
+  }
+  .nav-bar.function-icons .nav-icon.voice::before {
+    content: "🎤";
+    font-size: 22px;
+  }
+  .nav-bar.function-icons .nav-icon.more::before {
+    content: "⋮";
+    font-size: 20px;
+  }
+
+  /* ---------- 최하단 네비게이션 바 (9그리드 + 3라인 + 원형 + 화살표) ---------- */
+  .bottom-nav-bar {
+    height: 48px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    border-top: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .bottom-nav-icon {
+    font-size: 18px;
+    line-height: 1;
+    color: #4a4a4a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  .bottom-nav-icon.recent { 
+    letter-spacing: -1px; 
+    font-weight: 300;
+    font-size: 14px;
+  }
+  .bottom-nav-icon.home {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid #4a4a4a;
+    border-radius: 50%;
+    -webkit-box-sizing: border-box;
+  }
+  .bottom-nav-icon.down { 
+    font-size: 14px;
+  }
+  .bottom-nav-icon.apps {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-content: flex-start;
+    -webkit-box-sizing: border-box;
+  }
+  .bottom-nav-icon.apps span {
+    width: calc(33.333% - 1.5px);
+    height: calc(33.333% - 1.5px);
+    background: #6a6a6a;
+    -webkit-box-sizing: border-box;
+  }
+
+  /* ---------- 기존 suggestion-bar 숨김 ---------- */
+  .suggestion-bar {
+    display: none;
+  }
+
+  /* ---------- 라벨 (숨김) ---------- */
+  .label {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="device">
+
+  <!-- 상태바 -->
+  <div class="status-bar">
+    <div class="status-left">
+      <span>SKT</span>
+      <span>10:45</span>
+    </div>
+    <div class="status-right">
+      <span class="signal">●●●●</span>
+      <div class="battery">
+        <span>100</span>
+        <div class="battery-icon">
+          <div class="battery-fill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 입력 영역 (빈 화면) - 배너 위에 배치 -->
+  <div class="input-area"></div>
+
+  <!-- 1단계: 배너 (썸네일 + 텍스트 + 닫기 버튼) -->
+  <div class="banner">
+    <div class="banner-content">
+      <div class="banner-thumb">🖼️</div>
+      <div class="banner-text">Sample text here</div>
+    </div>
+    <div class="banner-close">✕</div>
+  </div>
+
+  <!-- 2단계: 기능 아이콘 영역 (배너 바로 아래) -->
+  <div class="nav-bar function-icons">
+    <div class="nav-icon rewards">
+      <div class="nav-label">적립</div>
+    </div>
+    <div class="nav-icon emoji">
+      <div class="nav-label">이모지</div>
+    </div>
+    <div class="nav-icon mission">
+      <div class="nav-label">미션</div>
+    </div>
+    <div class="nav-icon shopping">
+      <div class="nav-label">쇼핑</div>
+    </div>
+    <div class="nav-icon voice">
+      <div class="nav-label">음성</div>
+    </div>
+    <div class="nav-icon more">
+      <div class="nav-label">더보기</div>
+    </div>
+  </div>
+
+  <!-- 3단계: 키보드 -->
+  <div class="keyboard">
+
+    <!-- 숫자 행 -->
+    <div class="key-row">
+      <div class="key">1</div>
+      <div class="key">2</div>
+      <div class="key">3</div>
+      <div class="key">4</div>
+      <div class="key">5</div>
+      <div class="key">6</div>
+      <div class="key">7</div>
+      <div class="key">8</div>
+      <div class="key">9</div>
+      <div class="key">0</div>
+    </div>
+
+    <!-- 자모 행 1 -->
+    <div class="key-row">
+      <div class="key hangul">ㅂ</div>
+      <div class="key hangul">ㅈ</div>
+      <div class="key hangul">ㄷ</div>
+      <div class="key hangul">ㄱ</div>
+      <div class="key hangul">ㅅ</div>
+      <div class="key hangul">ㅛ</div>
+      <div class="key hangul">ㅕ</div>
+      <div class="key hangul">ㅑ</div>
+      <div class="key hangul">ㅐ</div>
+      <div class="key hangul">ㅔ</div>
+    </div>
+
+    <!-- 자모 행 2 (9키) -->
+    <div class="key-row" style="padding: 0 18px;">
+      <div class="key hangul">ㅁ</div>
+      <div class="key hangul">ㄴ</div>
+      <div class="key hangul">ㅇ</div>
+      <div class="key hangul">ㄹ</div>
+      <div class="key hangul">ㅎ</div>
+      <div class="key hangul">ㅗ</div>
+      <div class="key hangul">ㅓ</div>
+      <div class="key hangul">ㅏ</div>
+      <div class="key hangul">ㅣ</div>
+    </div>
+
+    <!-- 자모 행 3 (Shift + 7키 + Backspace) -->
+    <div class="key-row">
+      <div class="key func icon-shift"></div>
+      <div class="key hangul">ㅋ</div>
+      <div class="key hangul">ㅌ</div>
+      <div class="key hangul">ㅊ</div>
+      <div class="key hangul">ㅍ</div>
+      <div class="key hangul">ㅠ</div>
+      <div class="key hangul">ㅜ</div>
+      <div class="key hangul">ㅡ</div>
+      <div class="key func icon-backspace"></div>
+    </div>
+
+    <!-- 기능 행 -->
+    <div class="key-row">
+      <div class="key symbol">!@#</div>
+      <div class="key small icon-globe"></div>
+      <div class="key small">,</div>
+      <div class="key space">스페이스</div>
+      <div class="key small">.</div>
+      <div class="key symbol icon-enter"></div>
+    </div>
+
+  </div>
+
+  <!-- 4단계: 최하단 네비게이션 바 (9그리드 + 3라인 + 원형 + 화살표) -->
+  <div class="bottom-nav-bar">
+    <div class="bottom-nav-icon apps">
+      <span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </div>
+    <div class="bottom-nav-icon recent">|||</div>
+    <div class="bottom-nav-icon home"></div>
+    <div class="bottom-nav-icon down">⌄</div>
+  </div>
+
+</div>
+
+<div class="label">KEYBOARD WIREFRAME — 375 × 812 — 한국어 2벌식</div>
+
+</body>
+</html>
